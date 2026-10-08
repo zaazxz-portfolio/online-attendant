@@ -1,0 +1,140 @@
+/* Reset & basic */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Topbar */
+.topbar {
+    background-color: #FECA0A;
+    color: #000;
+    padding: 12px 20px;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.topbar .dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.topbar .dropbtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.topbar .dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #fff;
+    min-width: 150px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.topbar .dropdown-content a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: small;
+}
+
+.topbar .dropdown-content a:hover {
+    background-color: #f2f2f2;
+}
+
+/* Dashboard container */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px;
+}
+
+/* Card */
+.card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+/* Status horizontal */
+.card.status div.status-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.card.status div.status-row > div {
+    flex: 1 1 120px;
+    text-align: center;
+}
+
+.card.status img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* Buttons */
+.bottom-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-big {
+    background-color: #FECA0A;
+    color: #000;
+    text-decoration: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.btn-big[disabled], .btn-big.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Camera page */
+video#camera {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    display: block;
+    margin: 10px auto;
+}
+
+.btn-capture {
+    display: block;
+    margin: 15px auto;
+    padding: 12px 20px;
+    font-size: 18px;
+    border-radius: 8px;
+    background-color: #FECA0A;
+    border: none;
+    cursor: pointer;
+}
+
+.rounded-img { 
+    max-width: 25%;
+    height: auto;
+    border-radius: 15px; /* sudut melengkung */ 
+}
+
+.card p { margin: 2px 0; /* atas-bawah 5px, kiri-kanan 0 */ }

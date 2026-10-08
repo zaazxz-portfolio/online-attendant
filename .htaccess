@@ -1,0 +1,24 @@
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php73” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php73___lsphp .php .php7 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
+
+RewriteEngine On
+
+# Allow direct access to files in the public directory (assets, uploads, logos, etc.)
+RewriteCond %{REQUEST_URI} ^/public/ [NC]
+RewriteRule ^ - [L]
+
+# Allow direct access to vendor, manifest and service worker
+RewriteCond %{REQUEST_URI} ^/(vendor|manifest\.json|service-worker\.js) [NC]
+RewriteRule ^ - [L]
+
+# Prevent direct URL access to the apps folder (block e.g. /apps/auth/login.php)
+RewriteCond %{THE_REQUEST} \s/+apps/ [NC]
+RewriteRule ^ - [F,L]
+
+# Route all other requests internally to apps/
+RewriteCond %{REQUEST_URI} !^/apps/
+RewriteRule ^(.*)$ apps/$1 [L]

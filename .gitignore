@@ -1,0 +1,7 @@
+vendor/
+error_log
+.DS_Store
+*.log
+.ftpquota
+cgi-bin/
+*.db

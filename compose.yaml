@@ -1,0 +1,58 @@
+services:
+  # ── PHP-FPM ──────────────────────────────────────────────
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kknm-php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html          # ← bind mount: edit lokal = langsung berubah di container
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - kknm-net
+
+  # ── Nginx ────────────────────────────────────────────────
+  nginx:
+    image: nginx:stable-alpine
+    container_name: kknm-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"                # akses di http://localhost:8000
+    volumes:
+      - .:/var/www/html                          # sama dengan PHP agar Nginx bisa serve static files
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - kknm-net
+
+  # ── MySQL ────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: kknm-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: mudahaja123
+      MYSQL_DATABASE: kknm_dummy
+    ports:
+      - "3306:3306"              # agar bisa diakses dari host (TablePlus, DBeaver, dll.)
+    volumes:
+      - kknm-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmudahaja123"]
+      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kknm-net
+
+volumes:
+  kknm-mysql-data:
+
+networks:
+  kknm-net:
+    driver: bridge
