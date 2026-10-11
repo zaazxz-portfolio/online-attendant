@@ -1,4 +1,5 @@
-docker/
+docker/mysql/
+docker/nginx/
 vendor/
 .DS_Store
 compose.yaml
