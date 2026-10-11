@@ -129,6 +129,12 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
             <button type="submit" class="btn btn-gold w-100 mb-2">MASUK</button>
         </form>
+
+        <div class="mt-4 pt-2 border-top">
+            <small class="text-muted" style="font-size: 0.75rem;">
+                Reserved by <a href="https://temanngoding.id" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-semibold text-secondary">temanngoding.id</a>, Copyright &copy; 2026
+            </small>
+        </div>
     </div>
 </div>
 
