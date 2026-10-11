@@ -126,7 +126,8 @@ $radius = $setting['radius'];
                             <tr>
                                 <th class="border-0 rounded-start">No</th>
                                 <th class="border-0">Tanggal</th>
-                                <th class="border-0">Jam Presensi</th>
+                                <th class="border-0">Jam Masuk</th>
+                                <th class="border-0">Jam Pulang</th>
                                 <th class="border-0 rounded-end text-end">Aksi</th>
                             </tr>
                         </thead>
@@ -135,24 +136,31 @@ $radius = $setting['radius'];
                             if ($q && mysqli_num_rows($q) > 0):
                                 $no = $start + 1;
                                 while ($row = mysqli_fetch_assoc($q)):
-                                    $jamPagi = !empty($row['jam_pagi']) ? substr($row['jam_pagi'], 0, 5) : '-';
-                                    $jamSore = '-'; // Prevent undefined variable notices
+                                    $jamMasuk = !empty($row['jam_masuk']) ? substr($row['jam_masuk'], 0, 5) : '-';
+                                    $jamPulang = !empty($row['jam_pulang']) ? substr($row['jam_pulang'], 0, 5) : '-';
                             ?>
                                     <tr class="row-data"
                                         data-tanggal="<?= tglIndoShort($row['tanggal']) ?>"
-                                        data-jampagi="<?= $jamPagi ?>"
-                                        data-jamsore="<?= $jamSore ?>"
-                                        data-pagi="<?= htmlspecialchars(fotoUrl($row['absen_pagi'])) ?>"
-                                        data-sore="<?= htmlspecialchars(fotoUrl($row['absen_sore'])) ?>"
+                                        data-jammasuk="<?= $jamMasuk ?>"
+                                        data-jampulang="<?= $jamPulang ?>"
+                                        data-masuk="<?= htmlspecialchars(fotoUrl($row['absen_masuk'] ?? '')) ?>"
+                                        data-pulang="<?= htmlspecialchars(fotoUrl($row['absen_pulang'] ?? '')) ?>"
                                         data-distance="<?= isset($row['distance']) ? round($row['distance'], 1) : '-' ?>"
                                         data-status="<?= htmlspecialchars($row['status'] ?? '-') ?>">
                                         <td><?= $no++ ?></td>
                                         <td class="fw-semibold text-dark"><?= tglIndoShort($row['tanggal']) ?></td>
                                         <td>
-                                            <?php if (!empty($row['absen_pagi'])): ?>
-                                                <span class="badge bg-success"><i class="bi bi-clock me-1"></i><?= $jamPagi ?> WIB</span>
+                                            <?php if (!empty($row['absen_masuk'])): ?>
+                                                <span class="badge bg-success"><i class="bi bi-clock me-1"></i><?= $jamMasuk ?> WIB</span>
                                             <?php else: ?>
-                                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
+                                                <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($row['absen_pulang'])): ?>
+                                                <span class="badge bg-success"><i class="bi bi-clock me-1"></i><?= $jamPulang ?> WIB</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end">
@@ -162,7 +170,7 @@ $radius = $setting['radius'];
                                 <?php endwhile;
                             else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center text-secondary py-4">Belum ada presensi</td>
+                                    <td colspan="5" class="text-center text-secondary py-4">Belum ada presensi</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -215,8 +223,15 @@ $radius = $setting['radius'];
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 text-dark">
-                <div class="text-center mb-3">
-                    <img id="modal-pagi" src="/public/uploads/default.png" class="modal-body-img shadow-sm" alt="Foto Presensi">
+                <div class="row g-3 text-center mb-3">
+                    <div class="col-6">
+                        <span class="small fw-semibold text-muted d-block mb-1">Foto Masuk</span>
+                        <img id="modal-masuk" src="/public/uploads/default.png" class="modal-body-img shadow-sm w-100" style="height:140px;object-fit:cover;border-radius:10px;" alt="Foto Masuk">
+                    </div>
+                    <div class="col-6">
+                        <span class="small fw-semibold text-muted d-block mb-1">Foto Pulang</span>
+                        <img id="modal-pulang" src="/public/uploads/default.png" class="modal-body-img shadow-sm w-100" style="height:140px;object-fit:cover;border-radius:10px;" alt="Foto Pulang">
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm table-borderless m-0">
@@ -225,15 +240,19 @@ $radius = $setting['radius'];
                             <td class="fw-bold py-1" id="modal-tanggal"></td>
                         </tr>
                         <tr>
-                            <td class="text-secondary fw-semibold py-1">Jam Presensi</td>
-                            <td class="py-1"><span class="badge bg-success" id="modal-jampagi"></span></td>
+                            <td class="text-secondary fw-semibold py-1">Jam Masuk</td>
+                            <td class="py-1" id="modal-jammasuk"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-secondary fw-semibold py-1">Jam Pulang</td>
+                            <td class="py-1" id="modal-jampulang"></td>
                         </tr>
                         <tr>
                             <td class="text-secondary fw-semibold py-1">Jarak Radius</td>
                             <td class="py-1"><span class="fw-semibold" id="modal-distance"></span> meter</td>
                         </tr>
                         <tr>
-                            <td class="text-secondary fw-semibold py-1">Status Kehadiran</td>
+                            <td class="text-secondary fw-semibold py-1">Status Validasi</td>
                             <td class="py-1" id="modal-status-badge"></td>
                         </tr>
                     </table>
@@ -255,8 +274,15 @@ $radius = $setting['radius'];
     rows.forEach(row => {
         row.addEventListener("click", () => {
             document.getElementById("modal-tanggal").innerText = row.dataset.tanggal;
-            document.getElementById("modal-jampagi").innerText = row.dataset.jampagi + " WIB";
-            document.getElementById("modal-pagi").src = row.dataset.pagi || "/public/uploads/default.png";
+            
+            const jamMasuk = row.dataset.jammasuk;
+            document.getElementById("modal-jammasuk").innerHTML = jamMasuk !== '-' ? `<span class="badge bg-success">${jamMasuk} WIB</span>` : '<span class="badge bg-secondary">Belum Absen</span>';
+            
+            const jamPulang = row.dataset.jampulang;
+            document.getElementById("modal-jampulang").innerHTML = jamPulang !== '-' ? `<span class="badge bg-success">${jamPulang} WIB</span>` : '<span class="badge bg-secondary">Belum Absen</span>';
+
+            document.getElementById("modal-masuk").src = row.dataset.masuk || "/public/uploads/default.png";
+            document.getElementById("modal-pulang").src = row.dataset.pulang || "/public/uploads/default.png";
             document.getElementById("modal-distance").innerText = row.dataset.distance;
 
             const status = row.dataset.status;

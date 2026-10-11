@@ -9,7 +9,6 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'mahasiswa') {
 }
 
 require __DIR__ . "/../../utils/db.php";
-require __DIR__ . "/../../utils/drive.php";
 require __DIR__ . "/../../utils/helpers.php";
 
 $u = $_SESSION['user'];
@@ -20,28 +19,37 @@ $time = $_POST['time'] ?? '';
 $latUser = floatval($_POST['lat'] ?? 0);
 $lngUser = floatval($_POST['lng'] ?? 0);
 
-if (empty($img) || !in_array($time, ['pagi', 'sore'])) {
+if (empty($img) || !in_array($time, ['masuk', 'pulang'])) {
     die("Data tidak valid");
 }
 
 date_default_timezone_set('Asia/Jakarta');
 
-$now = date("H:i");
-$timeRange = [
-    "pagi" => ["01:00", "23:59"],
-    "sore" => ["17:00", "23:59"]
-];
+$setting   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
+$jamMasuk  = substr($setting['jam_masuk']  ?? '07:00', 0, 5);
+$jamPulang = substr($setting['jam_pulang'] ?? '12:00', 0, 5);
 
-if ($now < $timeRange[$time][0] || $now > $timeRange[$time][1]) {
-    $status = 'failed_time';
+$now = date("H:i");
+
+if ($time === 'masuk') {
+    if ($now < $jamMasuk || $now >= $jamPulang) {
+        $status = 'failed_time';
+    } else {
+        $status = 'success';
+    }
+} elseif ($time === 'pulang') {
+    if ($now < $jamPulang) {
+        $status = 'failed_time';
+    } else {
+        $status = 'success';
+    }
 } else {
-    $status = 'success';
+    $status = 'failed_time';
 }
 
-$setting = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
 $latBase = $setting['base_lat'];
 $lngBase = $setting['base_lng'];
-$radius = $setting['radius'];
+$radius  = $setting['radius'];
 
 // Compute distance using the helper function
 $dist = distance($latUser, $lngUser, $latBase, $lngBase);
@@ -50,7 +58,7 @@ if ($status === 'success' && $dist > $radius) {
     $status = 'failed';
 }
 
-$imgName = "foto_" . $uid . "_" . $time . "_" . time() . ".png";
+$imgName   = "foto_" . $uid . "_" . $time . "_" . time() . ".png";
 
 $imgBase64Only = preg_replace('#^data:image/\w+;base64,#i', '', $img);
 
@@ -58,13 +66,17 @@ if (empty($imgBase64Only) || base64_decode($imgBase64Only, true) === false) {
     die("Base64 tidak valid");
 }
 
-$driveResult = uploadToDrive($imgBase64Only, $imgName, "image/png");
+$uploadDir = __DIR__ . "/../../public/uploads/";
 
-if (empty($driveResult['success'])) {
-    die("Gagal upload foto ke Google Drive: " . ($driveResult['message'] ?? 'unknown error'));
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
 }
 
-$imgName = $driveResult['url'];
+$saved = file_put_contents($uploadDir . $imgName, base64_decode($imgBase64Only));
+
+if ($saved === false) {
+    die("Gagal menyimpan foto ke server.");
+}
 
 $tanggalHariIni = date("Y-m-d");
 $jamSekarang = date("H:i:s");
@@ -72,8 +84,8 @@ $jamSekarang = date("H:i:s");
 $q = mysqli_query($conn, "SELECT * FROM attendance WHERE user_id='$uid' AND tanggal='$tanggalHariIni'");
 $attendance = mysqli_fetch_assoc($q);
 
-$fieldImg = $time == 'pagi' ? 'absen_pagi' : 'absen_sore';
-$fieldJam = $time == 'pagi' ? 'jam_pagi' : 'jam_sore';
+$fieldImg = $time == 'masuk' ? 'absen_masuk' : 'absen_pulang';
+$fieldJam = $time == 'masuk' ? 'jam_masuk'   : 'jam_pulang';
 
 if (!$attendance) {
     mysqli_query($conn, "INSERT INTO attendance(
@@ -97,6 +109,7 @@ if ($status === 'success') {
 } elseif ($status === 'failed') {
     echo "<script>alert('Gagal, Anda berada di luar radius (" . round($dist, 1) . " m)');window.location='/user/dashboard';</script>";
 } else {
-    echo "<script>alert('Gagal, di luar jam presensi');window.location='/user/dashboard';</script>";
+    $labelJam = $time === 'masuk' ? $jamMasuk : $jamPulang;
+    echo "<script>alert('Gagal, absen $time baru dibuka mulai $labelJam WIB');window.location='/user/dashboard';</script>";
 }
 ?>

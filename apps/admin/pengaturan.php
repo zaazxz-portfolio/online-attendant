@@ -12,23 +12,27 @@ $error = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $baseLat = floatval($_POST['base_lat'] ?? 0);
-    $baseLng = floatval($_POST['base_lng'] ?? 0);
-    $radius  = intval($_POST['radius'] ?? 100);
+    $baseLat   = floatval($_POST['base_lat'] ?? 0);
+    $baseLng   = floatval($_POST['base_lng'] ?? 0);
+    $radius    = intval($_POST['radius'] ?? 100);
+    $jamMasuk  = $_POST['jam_masuk'] ?? '07:00';
+    $jamPulang = $_POST['jam_pulang'] ?? '12:00';
 
     if ($baseLat == 0 || $baseLng == 0) {
         $error = "Koordinat latitude dan longitude harus diisi.";
     } elseif ($radius < 10 || $radius > 5000) {
         $error = "Radius harus antara 10 - 5000 meter.";
+    } elseif ($jamMasuk >= $jamPulang) {
+        $error = "Jam masuk harus lebih awal dari jam pulang.";
     } else {
         $check = mysqli_query($conn, "SELECT id FROM settings LIMIT 1");
         if (mysqli_num_rows($check) > 0) {
             $id = mysqli_fetch_assoc($check)['id'];
-            $stmt = $conn->prepare("UPDATE settings SET base_lat=?, base_lng=?, radius=? WHERE id=?");
-            $stmt->bind_param("ddii", $baseLat, $baseLng, $radius, $id);
+            $stmt = $conn->prepare("UPDATE settings SET base_lat=?, base_lng=?, radius=?, jam_masuk=?, jam_pulang=? WHERE id=?");
+            $stmt->bind_param("ddissi", $baseLat, $baseLng, $radius, $jamMasuk, $jamPulang, $id);
         } else {
-            $stmt = $conn->prepare("INSERT INTO settings (base_lat, base_lng, radius) VALUES (?, ?, ?)");
-            $stmt->bind_param("ddi", $baseLat, $baseLng, $radius);
+            $stmt = $conn->prepare("INSERT INTO settings (base_lat, base_lng, radius, jam_masuk, jam_pulang) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("ddiss", $baseLat, $baseLng, $radius, $jamMasuk, $jamPulang);
         }
         if ($stmt->execute()) {
             $success = "Pengaturan berhasil disimpan!";
@@ -39,10 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get current settings
-$setting = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
-$baseLat = $setting['base_lat'] ?? -6.8936;
-$baseLng = $setting['base_lng'] ?? 107.6104;
-$radius  = $setting['radius'] ?? 100;
+$setting   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
+$baseLat   = $setting['base_lat']   ?? -6.8936;
+$baseLng   = $setting['base_lng']   ?? 107.6104;
+$radius    = $setting['radius']     ?? 100;
+$jamMasuk  = $setting['jam_masuk']  ?? '07:00';
+$jamPulang = $setting['jam_pulang'] ?? '12:00';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -135,6 +141,26 @@ $radius  = $setting['radius'] ?? 100;
                                 <span class="input-group-text bg-light">meter</span>
                             </div>
                             <div class="form-text">Jarak maksimum dari titik base agar presensi dianggap valid.</div>
+                        </div>
+
+                        <div class="col-12"><hr class="my-1"><p class="fw-semibold text-secondary small mb-0"><i class="bi bi-clock text-warning me-1"></i>Jam Presensi</p></div>
+
+                        <div class="col-sm-6">
+                            <label for="jam_masuk" class="form-label fw-semibold text-secondary small">Jam Masuk (buka dari jam ini)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-box-arrow-in-right text-warning"></i></span>
+                                <input type="time" class="form-control" name="jam_masuk" id="jam_masuk" value="<?= $jamMasuk ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="jam_pulang" class="form-label fw-semibold text-secondary small">Jam Pulang (buka dari jam ini)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-box-arrow-right text-warning"></i></span>
+                                <input type="time" class="form-control" name="jam_pulang" id="jam_pulang" value="<?= $jamPulang ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text">Mahasiswa hanya bisa absen masuk mulai jam masuk, dan absen pulang mulai jam pulang — hingga pukul 23:59 WIB.</div>
                         </div>
                     </div>
 

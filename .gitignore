@@ -1,7 +1,9 @@
+docker/
 vendor/
-error_log
 .DS_Store
-*.log
+Dockerfile
+compose.yaml
+.htaccess
 .ftpquota
-cgi-bin/
+error_log
 *.db

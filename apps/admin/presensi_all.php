@@ -18,10 +18,10 @@ $sql = "
 
     a.id AS absen_id,
     a.tanggal,
-    a.jam_pagi,
-    a.jam_sore,
-    a.absen_pagi,
-    a.absen_sore,
+    a.jam_masuk,
+    a.jam_pulang,
+    a.absen_masuk,
+    a.absen_pulang,
     a.distance,
     a.lat,
     a.lng,
@@ -135,7 +135,8 @@ $data = $stmt->get_result();
                             <tr>
                                 <th class="border-0 rounded-start" style="width: 50px;">No</th>
                                 <th class="border-0">Nama Mahasiswa</th>
-                                <th class="border-0">Jam Presensi</th>
+                                <th class="border-0">Jam Masuk</th>
+                                <th class="border-0">Jam Pulang</th>
                                 <th class="border-0">Status</th>
                                 <th class="border-0 rounded-end text-end" style="width: 100px;">Aksi</th>
                             </tr>
@@ -144,7 +145,8 @@ $data = $stmt->get_result();
                             <?php 
                             $no = 1;
                             while ($row = $data->fetch_assoc()): 
-                                $jamPagi = !empty($row['jam_pagi']) ? substr($row['jam_pagi'], 0, 5) : '-';
+                                $jamMasuk  = !empty($row['jam_masuk'])  ? substr($row['jam_masuk'], 0, 5)  : '-';
+                                $jamPulang = !empty($row['jam_pulang']) ? substr($row['jam_pulang'], 0, 5) : '-';
                             ?>
                                 <tr>
                                     <td><?= $no++ ?></td>
@@ -153,8 +155,15 @@ $data = $stmt->get_result();
                                         <small class="text-secondary"><?= htmlspecialchars($row['username']) ?></small>
                                     </td>
                                     <td>
-                                        <?php if ($row['jam_pagi']): ?>
-                                            <span class="badge bg-success-subtle text-success fw-semibold"><i class="bi bi-clock me-1"></i><?= $jamPagi ?> WIB</span>
+                                        <?php if (!empty($row['absen_masuk'])): ?>
+                                            <span class="badge bg-success-subtle text-success fw-semibold"><i class="bi bi-clock me-1"></i><?= $jamMasuk ?> WIB</span>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($row['absen_pulang'])): ?>
+                                            <span class="badge bg-success-subtle text-success fw-semibold"><i class="bi bi-clock me-1"></i><?= $jamPulang ?> WIB</span>
                                         <?php else: ?>
                                             <span class="text-muted">-</span>
                                         <?php endif; ?>
@@ -222,7 +231,8 @@ function resolveFotoUrl(value){
 }
 
 function showDetail(data){
-    const jam = data.jam_pagi ? data.jam_pagi.substring(0, 5) + " WIB" : "-";
+    const jamMasuk = data.jam_masuk ? data.jam_masuk.substring(0, 5) + " WIB" : "-";
+    const jamPulang = data.jam_pulang ? data.jam_pulang.substring(0, 5) + " WIB" : "-";
     const status = data.status ?? "-";
     let badge = '';
 
@@ -237,8 +247,15 @@ function showDetail(data){
     }
 
     let html = `
-        <div class="text-center mb-3">
-            <img src="${resolveFotoUrl(data.absen_pagi)}" class="modal-body-img shadow-sm" alt="Foto Absen">
+        <div class="row g-3 text-center mb-3">
+            <div class="col-6">
+                <span class="small fw-semibold text-muted d-block mb-1">Foto Masuk</span>
+                <img src="${resolveFotoUrl(data.absen_masuk)}" class="modal-body-img shadow-sm w-100" style="height:140px;object-fit:cover;border-radius:10px;" alt="Foto Masuk">
+            </div>
+            <div class="col-6">
+                <span class="small fw-semibold text-muted d-block mb-1">Foto Pulang</span>
+                <img src="${resolveFotoUrl(data.absen_pulang)}" class="modal-body-img shadow-sm w-100" style="height:140px;object-fit:cover;border-radius:10px;" alt="Foto Pulang">
+            </div>
         </div>
         <div class="table-responsive">
             <table class="table table-sm table-borderless m-0">
@@ -255,8 +272,12 @@ function showDetail(data){
                     <td class="py-1">${data.tanggal ?? "-"}</td>
                 </tr>
                 <tr>
-                    <td class="text-secondary fw-semibold py-1">Jam Presensi</td>
-                    <td class="py-1"><span class="badge bg-success">${jam}</span></td>
+                    <td class="text-secondary fw-semibold py-1">Jam Masuk</td>
+                    <td class="py-1">${data.absen_masuk ? `<span class="badge bg-success">${jamMasuk}</span>` : '<span class="text-muted">-</span>'}</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary fw-semibold py-1">Jam Pulang</td>
+                    <td class="py-1">${data.absen_pulang ? `<span class="badge bg-success">${jamPulang}</span>` : '<span class="text-muted">-</span>'}</td>
                 </tr>
                 <tr>
                     <td class="text-secondary fw-semibold py-1">Jarak Radius</td>

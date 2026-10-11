@@ -174,7 +174,8 @@ $html = '
             <tr>
                 <th style="width: 40px;">NO</th>
                 <th>TANGGAL</th>
-                <th>JAM PRESENSI</th>
+                <th>JAM MASUK</th>
+                <th>JAM PULANG</th>
                 <th>JARAK PRESENSI</th>
             </tr>
         </thead>
@@ -183,13 +184,15 @@ $html = '
 $no = 1;
 while ($row = mysqli_fetch_assoc($query)) {
     $jarak = isset($row['distance']) ? round($row['distance']) . " m" : "-";
-    $jam = !empty($row['jam_pagi']) ? substr($row['jam_pagi'], 0, 5) . " WIB" : "-";
+    $jamMasuk  = !empty($row['jam_masuk'])  ? substr($row['jam_masuk'], 0, 5) . " WIB"  : "-";
+    $jamPulang = !empty($row['jam_pulang']) ? substr($row['jam_pulang'], 0, 5) . " WIB" : "-";
 
     $html .= '
             <tr>
                 <td>' . $no++ . '</td>
                 <td>' . date('d-m-Y', strtotime($row['tanggal'])) . '</td>
-                <td>' . $jam . '</td>
+                <td>' . $jamMasuk . '</td>
+                <td>' . $jamPulang . '</td>
                 <td>' . $jarak . '</td>
             </tr>';
 }

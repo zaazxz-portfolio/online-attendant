@@ -1,11 +1,54 @@
 <?php
 session_start();
-if(!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'mahasiswa'){ 
-    header("Location: /auth/login"); 
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'mahasiswa') {
+    header("Location: /auth/login");
     exit();
 }
-$u = $_SESSION['user'];
-$time = $_GET['time'] ?? 'pagi';
+
+$u   = $_SESSION['user'];
+$uid = $u['id'];
+
+$time = $_GET['time'] ?? 'masuk';
+if (!in_array($time, ['masuk', 'pulang'])) $time = 'masuk';
+
+require __DIR__ . "/../../utils/db.php";
+
+date_default_timezone_set('Asia/Jakarta');
+$now = date("H:i");
+
+// Ambil jam presensi dari settings
+$setting   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
+$jamMasuk  = substr($setting['jam_masuk']  ?? '07:00', 0, 5);
+$jamPulang = substr($setting['jam_pulang'] ?? '12:00', 0, 5);
+
+// Cek apakah sudah absen hari ini
+$tanggalHariIni = date("Y-m-d");
+$q     = mysqli_query($conn, "SELECT absen_masuk, absen_pulang FROM attendance WHERE user_id='$uid' AND tanggal='$tanggalHariIni'");
+$today = $q && mysqli_num_rows($q) > 0 ? mysqli_fetch_assoc($q) : [];
+
+// Blokir berdasarkan sesi waktu
+if ($time === 'masuk') {
+    if ($now < $jamMasuk) {
+        header("Location: /user/dashboard?error=" . urlencode("Absen masuk baru dibuka mulai $jamMasuk WIB"));
+        exit();
+    }
+    if ($now >= $jamPulang) {
+        header("Location: /user/dashboard?error=" . urlencode("Waktu absen masuk telah ditutup (batas $jamPulang WIB)"));
+        exit();
+    }
+} elseif ($time === 'pulang') {
+    if ($now < $jamPulang) {
+        header("Location: /user/dashboard?error=" . urlencode("Absen pulang baru dibuka mulai $jamPulang WIB"));
+        exit();
+    }
+}
+
+// Blokir jika sudah absen
+$fieldAbsen = $time === 'masuk' ? 'absen_masuk' : 'absen_pulang';
+if (!empty($today[$fieldAbsen])) {
+    header("Location: /user/dashboard?error=" . urlencode("Anda sudah melakukan absen $time hari ini"));
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -86,7 +129,7 @@ $time = $_GET['time'] ?? 'pagi';
         </div>
         
         <button id="capture" class="btn btn-gold w-100 py-3 shadow" disabled>
-            <i class="bi bi-camera-fill me-2 fs-5"></i>Ambil Foto <?= ucfirst($time) ?>
+            <i class="bi bi-camera-fill me-2 fs-5"></i><?= $time === 'masuk' ? 'Absen Masuk' : 'Absen Pulang' ?>
         </button>
     </div>
 </div>

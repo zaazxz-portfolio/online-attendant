@@ -6,7 +6,6 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'mahasiswa') {
 }
 
 require __DIR__ . "/../../utils/db.php";
-require __DIR__ . "/../../utils/drive.php";
 require __DIR__ . "/../../utils/helpers.php";
 
 $u = $_SESSION['user'];
@@ -15,22 +14,24 @@ $uid = $u['id'];
 date_default_timezone_set('Asia/Jakarta');
 $now = date("H:i");
 
-$timeRange = [
-    "pagi" => ["06:00", "23:59"],
-    "sore" => ["13:00", "20:00"]
-];
-// Fix the range comparison bug
-// Temporary unlocked for testing
-$aktifPagi = true;
-
 $tanggalHariIni = date("Y-m-d");
 $q = mysqli_query($conn, "SELECT * FROM attendance WHERE user_id='$uid' AND DATE(tanggal)='$tanggalHariIni'");
 $today = $q && mysqli_num_rows($q) > 0 ? mysqli_fetch_assoc($q) : [];
 
-$setting = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
-$radius = $setting['radius'];
+$setting   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM settings LIMIT 1"));
+$radius    = $setting['radius']    ?? 100;
+$jamMasuk  = substr($setting['jam_masuk']  ?? '07:00', 0, 5);
+$jamPulang = substr($setting['jam_pulang'] ?? '12:00', 0, 5);
 
-$jamPagi = !empty($today['jam_pagi']) ? substr($today['jam_pagi'], 0, 5) : null;
+$isBeforeMasuk = ($now < $jamMasuk);
+$isInMasuk     = ($now >= $jamMasuk && $now < $jamPulang);
+$isPastMasuk   = ($now >= $jamPulang);
+
+$isBeforePulang = ($now < $jamPulang);
+$isInPulang     = ($now >= $jamPulang);
+
+$jamMasukDisplay  = !empty($today['jam_masuk'])  ? substr($today['jam_masuk'],  0, 5) : null;
+$jamPulangDisplay = !empty($today['jam_pulang']) ? substr($today['jam_pulang'], 0, 5) : null;
 $distance = isset($today['distance']) ? round($today['distance'], 2) : null;
 $statusAbsen = $today['status'] ?? null;
 ?>
@@ -147,6 +148,12 @@ $statusAbsen = $today['status'] ?? null;
 
 <!-- Main Content -->
 <div class="container pb-5">
+    <?php if (!empty($_GET['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($_GET['error']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
     <div class="row g-4 justify-content-center">
         <!-- Profile Column -->
         <div class="col-12 col-md-5 col-lg-4 text-center">
@@ -185,37 +192,51 @@ $statusAbsen = $today['status'] ?? null;
             <!-- Status Card -->
             <div class="card status-card p-4 mb-4">
                 <h5 class="fw-bold border-bottom pb-2 mb-4 text-center text-md-start">Status Presensi Hari Ini</h5>
-                
-                <div class="row align-items-center g-3 text-center text-md-start">
+
+                <div class="row align-items-start g-3 text-center">
+                    <!-- Masuk -->
                     <div class="col-12 col-sm-6 d-flex flex-column align-items-center">
-                        <span class="fw-semibold text-secondary d-block mb-2">Foto Presensi Pagi</span>
-                        <?php if (!empty($today['absen_pagi'])): ?>
-                            <img src="<?= htmlspecialchars(fotoUrl($today['absen_pagi'])) ?>" class="attendance-preview mb-2" alt="Absen Pagi Photo">
+                        <span class="fw-semibold text-secondary d-block mb-2">📥 Absen Masuk</span>
+                        <?php if (!empty($today['absen_masuk'])): ?>
+                            <img src="<?= htmlspecialchars(fotoUrl($today['absen_masuk'])) ?>" class="attendance-preview mb-2" alt="Foto Masuk">
                         <?php else: ?>
                             <div class="attendance-preview d-flex align-items-center justify-content-center bg-light mb-2">
                                 <i class="bi bi-camera text-muted fs-2"></i>
                             </div>
                         <?php endif; ?>
+                        <?php if ($jamMasukDisplay): ?>
+                            <span class="badge bg-success status-badge"><i class="bi bi-clock me-1"></i><?= $jamMasukDisplay ?> WIB</span>
+                        <?php else: ?>
+                            <span class="badge bg-danger status-badge"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
+                        <?php endif; ?>
                     </div>
-                    
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <span class="text-muted d-block small">Waktu Kehadiran</span>
-                            <?php if ($jamPagi): ?>
-                                <span class="badge bg-success status-badge"><i class="bi bi-clock me-1"></i><?= $jamPagi ?> WIB</span>
-                            <?php else: ?>
-                                <span class="badge bg-danger status-badge"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="mb-3">
+
+                    <!-- Pulang -->
+                    <div class="col-12 col-sm-6 d-flex flex-column align-items-center">
+                        <span class="fw-semibold text-secondary d-block mb-2">📤 Absen Pulang</span>
+                        <?php if (!empty($today['absen_pulang'])): ?>
+                            <img src="<?= htmlspecialchars(fotoUrl($today['absen_pulang'])) ?>" class="attendance-preview mb-2" alt="Foto Pulang">
+                        <?php else: ?>
+                            <div class="attendance-preview d-flex align-items-center justify-content-center bg-light mb-2">
+                                <i class="bi bi-camera text-muted fs-2"></i>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($jamPulangDisplay): ?>
+                            <span class="badge bg-success status-badge"><i class="bi bi-clock me-1"></i><?= $jamPulangDisplay ?> WIB</span>
+                        <?php else: ?>
+                            <span class="badge bg-danger status-badge"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Info jarak & status -->
+                    <div class="col-12 border-top pt-3 text-start">
+                        <div class="mb-2">
                             <span class="text-muted d-block small">Jarak dari Base</span>
                             <span class="fw-semibold text-dark">
                                 <?= $distance !== null ? $distance . " meter" : "-" ?>
                             </span>
                             <span class="text-muted small d-block">(maksimum radius <?= $radius ?> meter)</span>
                         </div>
-
                         <div>
                             <span class="text-muted d-block small">Status Validasi</span>
                             <?php if ($statusAbsen === 'success'): ?>
@@ -232,25 +253,63 @@ $statusAbsen = $today['status'] ?? null;
                 </div>
             </div>
 
-            <!-- Big Absen Button -->
-            <?php if (!$aktifPagi): ?>
-                <div class="alert alert-warning py-3 border-0 shadow-sm rounded-3 mb-4 text-center">
-                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-                    Tombol presensi dikunci. Presensi pagi dibuka pukul <strong>06:00 s.d 23:59 WIB</strong>.
-                </div>
-            <?php endif; ?>
+            <!-- Tombol Absen -->
+            <div class="d-grid gap-3">
 
-            <?php if (!empty($today['absen_pagi'])): ?>
-                <div class="alert alert-success py-3 border-0 shadow-sm rounded-3 mb-4 text-center">
-                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
-                    Anda telah melakukan presensi pagi hari ini.
-                </div>
-            <?php endif; ?>
+                <!-- Presensi Masuk -->
+                <?php if (!empty($today['absen_masuk'])): ?>
+                    <!-- Sudah absen masuk -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 text-center" style="background:#f0fdf4;">
+                        <div class="mb-1"><i class="bi bi-check-circle-fill fs-4 text-success"></i></div>
+                        <div class="fw-semibold text-success">Absen Masuk Tercatat</div>
+                        <div class="small text-muted mt-1">Pukul <?= $jamMasukDisplay ?> WIB</div>
+                    </div>
+                <?php elseif ($isBeforeMasuk): ?>
+                    <!-- Belum waktunya masuk -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-light">
+                        <div class="mb-1"><i class="bi bi-lock-fill fs-4 text-secondary"></i></div>
+                        <div class="fw-semibold text-secondary">Absen Masuk Dikunci</div>
+                        <div class="small text-muted mt-1">Dibuka mulai <strong><?= $jamMasuk ?> WIB</strong></div>
+                    </div>
+                <?php elseif ($isInMasuk): ?>
+                    <!-- Sesi absen masuk sedang aktif -->
+                    <a class="btn-gold-big" href="/user/absen?time=masuk">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>ABSEN MASUK
+                        <small class="d-block fw-normal opacity-75" style="font-size:0.75rem">Sesi: <?= $jamMasuk ?> - <?= $jamPulang ?> WIB</small>
+                    </a>
+                <?php else: ?>
+                    <!-- Sudah lewat jam masuk / ditutup -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-light">
+                        <div class="mb-1"><i class="bi bi-x-circle-fill fs-4 text-danger"></i></div>
+                        <div class="fw-semibold text-danger">Absen Masuk Ditutup</div>
+                        <div class="small text-muted mt-1">Batas sesi masuk sampai <strong><?= $jamPulang ?> WIB</strong></div>
+                    </div>
+                <?php endif; ?>
 
-            <a class="btn-gold-big w-100 <?= ($aktifPagi && empty($today['absen_pagi'])) ? '' : 'disabled' ?>" 
-               href="<?= ($aktifPagi && empty($today['absen_pagi'])) ? '/user/absen.php?time=pagi' : '#' ?>">
-               <i class="bi bi-camera-fill me-2"></i>AMBIL PRESENSI PAGI
-            </a>
+                <!-- Presensi Pulang -->
+                <?php if (!empty($today['absen_pulang'])): ?>
+                    <!-- Sudah absen pulang -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 text-center" style="background:#f0fdf4;">
+                        <div class="mb-1"><i class="bi bi-check-circle-fill fs-4 text-success"></i></div>
+                        <div class="fw-semibold text-success">Absen Pulang Tercatat</div>
+                        <div class="small text-muted mt-1">Pukul <?= $jamPulangDisplay ?> WIB</div>
+                    </div>
+                <?php elseif ($isBeforePulang): ?>
+                    <!-- Belum waktunya pulang -->
+                    <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-light">
+                        <div class="mb-1"><i class="bi bi-lock-fill fs-4 text-secondary"></i></div>
+                        <div class="fw-semibold text-secondary">Absen Pulang Dikunci</div>
+                        <div class="small text-muted mt-1">Dibuka mulai <strong><?= $jamPulang ?> WIB</strong></div>
+                    </div>
+                <?php else: ?>
+                    <!-- Sesi absen pulang sedang aktif -->
+                    <a class="btn-gold-big" href="/user/absen?time=pulang">
+                        <i class="bi bi-box-arrow-right me-2"></i>ABSEN PULANG
+                        <small class="d-block fw-normal opacity-75" style="font-size:0.75rem">Dibuka mulai <?= $jamPulang ?> WIB</small>
+                    </a>
+                <?php endif; ?>
+
+            </div>
         </div>
     </div>
 </div>
