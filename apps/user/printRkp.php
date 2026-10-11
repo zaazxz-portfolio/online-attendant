@@ -38,11 +38,16 @@ $ttdBase64 = getImageBase64($ttdPath);
 $photoValue = $user_data['foto'] ?? '';
 $photoSrc = '';
 if (empty($photoValue)) {
-    $photoSrc = getImageBase64(__DIR__ . '/../../public/uploads/default.png');
+    $photoSrc = getImageBase64(__DIR__ . '/../../public/assets/logo.png');
 } elseif (str_starts_with($photoValue, 'http')) {
     $photoSrc = $photoValue; // Direct Google Drive URL
 } else {
-    $photoSrc = getImageBase64(__DIR__ . '/../../public/uploads/' . $photoValue);
+    $clean = basename($photoValue);
+    if (file_exists(__DIR__ . '/../../public/assets/uploads/' . $clean)) {
+        $photoSrc = getImageBase64(__DIR__ . '/../../public/assets/uploads/' . $clean);
+    } else {
+        $photoSrc = getImageBase64(__DIR__ . '/../../public/uploads/' . $clean);
+    }
 }
 
 $html = '

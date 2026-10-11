@@ -164,12 +164,8 @@ $statusPulang = $today['status_pulang'] ?? null;
         <div class="col-12 col-md-5 col-lg-4 text-center">
             <div class="card profile-card p-4">
                 <div class="mb-3 d-flex justify-content-center">
-                    <?php 
-                    $fotoFileName = basename($u['foto'] ?? '');
-                    $hasFoto = !empty($fotoFileName) && $fotoFileName !== 'default.png' && file_exists(__DIR__ . '/../../public/uploads/' . $fotoFileName);
-                    if ($hasFoto): 
-                    ?>
-                        <img src="/public/uploads/<?= htmlspecialchars($fotoFileName) ?>" class="profile-img img-thumbnail" alt="User Photo">
+                    <?php if (!empty($u['foto']) && $u['foto'] !== 'default.png'): ?>
+                        <img src="<?= htmlspecialchars(fotoProfilUrl($u['foto'])) ?>" class="profile-img img-thumbnail" alt="User Photo">
                     <?php else: ?>
                         <div class="profile-img img-thumbnail d-flex align-items-center justify-content-center bg-light text-secondary">
                             <i class="bi bi-person-fill" style="font-size: 6rem;"></i>

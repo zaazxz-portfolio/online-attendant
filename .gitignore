@@ -11,5 +11,9 @@ public/uploads/*.jpg
 public/uploads/*.jpeg
 public/uploads/*.png
 public/uploads/*.webp
+public/assets/uploads/*.jpg
+public/assets/uploads/*.jpeg
+public/assets/uploads/*.png
+public/assets/uploads/*.webp
 
 

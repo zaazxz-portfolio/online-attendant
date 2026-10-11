@@ -4,6 +4,7 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
     header("Location: /auth/login");
     exit();
 }
+require_once __DIR__ . "/../../utils/helpers.php";
 $u = $_SESSION['user'];
 ?>
 <!DOCTYPE html>
@@ -112,12 +113,8 @@ $u = $_SESSION['user'];
         <div class="col-12 col-md-8 col-lg-6">
             <div class="card admin-card p-4 text-center">
                 <div class="mb-3 d-flex justify-content-center">
-                    <?php 
-                    $fotoFileName = basename($u['foto'] ?? '');
-                    $hasFoto = !empty($fotoFileName) && $fotoFileName !== 'default.png' && file_exists(__DIR__ . '/../../public/uploads/' . $fotoFileName);
-                    if ($hasFoto): 
-                    ?>
-                        <img src="/public/uploads/<?= htmlspecialchars($fotoFileName) ?>" class="admin-img" alt="Admin Photo">
+                    <?php if (!empty($u['foto']) && $u['foto'] !== 'default.png'): ?>
+                        <img src="<?= htmlspecialchars(fotoProfilUrl($u['foto'])) ?>" class="admin-img" alt="Admin Photo">
                     <?php else: ?>
                         <div class="admin-img d-flex align-items-center justify-content-center bg-light text-secondary">
                             <i class="bi bi-person-fill" style="font-size: 5rem;"></i>
