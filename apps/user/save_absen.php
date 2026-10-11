@@ -84,19 +84,23 @@ $jamSekarang = date("H:i:s");
 $q = mysqli_query($conn, "SELECT * FROM attendance WHERE user_id='$uid' AND tanggal='$tanggalHariIni'");
 $attendance = mysqli_fetch_assoc($q);
 
-$fieldImg = $time == 'masuk' ? 'absen_masuk' : 'absen_pulang';
-$fieldJam = $time == 'masuk' ? 'jam_masuk'   : 'jam_pulang';
+$fieldImg  = $time == 'masuk' ? 'absen_masuk'    : 'absen_pulang';
+$fieldJam  = $time == 'masuk' ? 'jam_masuk'      : 'jam_pulang';
+$fieldDist = $time == 'masuk' ? 'distance_masuk' : 'distance_pulang';
+$fieldStat = $time == 'masuk' ? 'status_masuk'   : 'status_pulang';
 
 if (!$attendance) {
     mysqli_query($conn, "INSERT INTO attendance(
-        user_id, tanggal, $fieldImg, $fieldJam, lat, lng, distance, status
+        user_id, tanggal, $fieldImg, $fieldJam, $fieldDist, $fieldStat, lat, lng, distance, status
     ) VALUES(
-        '$uid', '$tanggalHariIni', '$imgName', '$jamSekarang', '$latUser', '$lngUser', '$dist', '$status'
+        '$uid', '$tanggalHariIni', '$imgName', '$jamSekarang', '$dist', '$status', '$latUser', '$lngUser', '$dist', '$status'
     )");
 } else {
     mysqli_query($conn, "UPDATE attendance SET
         $fieldImg='$imgName',
         $fieldJam='$jamSekarang',
+        $fieldDist='$dist',
+        $fieldStat='$status',
         lat='$latUser',
         lng='$lngUser',
         distance='$dist',

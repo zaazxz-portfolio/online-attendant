@@ -33,8 +33,12 @@ $isInPulang     = ($now >= $jamPulang);
 
 $jamMasukDisplay  = !empty($today['jam_masuk'])  ? substr($today['jam_masuk'],  0, 5) : null;
 $jamPulangDisplay = !empty($today['jam_pulang']) ? substr($today['jam_pulang'], 0, 5) : null;
-$distance = isset($today['distance']) ? round($today['distance'], 2) : null;
-$statusAbsen = $today['status'] ?? null;
+
+$distMasuk = isset($today['distance_masuk']) ? round($today['distance_masuk'], 1) : (isset($today['distance']) ? round($today['distance'], 1) : null);
+$distPulang = isset($today['distance_pulang']) ? round($today['distance_pulang'], 1) : null;
+
+$statusMasuk = $today['status_masuk'] ?? ($today['status'] ?? null);
+$statusPulang = $today['status_pulang'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -229,26 +233,50 @@ $statusAbsen = $today['status'] ?? null;
                         <?php endif; ?>
                     </div>
 
-                    <!-- Info jarak & status -->
+                    <!-- Info validasi detail per sesi -->
                     <div class="col-12 border-top pt-3 text-start">
-                        <div class="mb-2">
-                            <span class="text-muted d-block small">Jarak dari Base</span>
-                            <span class="fw-semibold text-dark">
-                                <?= $distance !== null ? $distance . " meter" : "-" ?>
-                            </span>
-                            <span class="text-muted small d-block">(maksimum radius <?= $radius ?> meter)</span>
-                        </div>
-                        <div>
-                            <span class="text-muted d-block small">Status Validasi</span>
-                            <?php if ($statusAbsen === 'success'): ?>
-                                <span class="badge bg-success status-badge fw-bold"><i class="bi bi-check-circle-fill me-1"></i>SUCCESS</span>
-                            <?php elseif ($statusAbsen === 'failed'): ?>
-                                <span class="badge bg-danger status-badge fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>FAILED (Luar Radius)</span>
-                            <?php elseif ($statusAbsen === 'failed_time'): ?>
-                                <span class="badge bg-warning text-dark status-badge fw-bold"><i class="bi bi-exclamation-circle-fill me-1"></i>Luar Jam Presensi</span>
-                            <?php else: ?>
-                                <span class="text-muted">-</span>
-                            <?php endif; ?>
+                        <div class="small fw-semibold text-secondary mb-2">Detail Validasi Lokasi (Maks. Radius <?= $radius ?> m):</div>
+                        <div class="row g-2">
+                            <!-- Validasi Masuk -->
+                            <div class="col-12 col-sm-6">
+                                <div class="p-2.5 rounded-3 bg-light border">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small fw-bold text-dark">📥 Masuk:</span>
+                                        <?php if ($statusMasuk === 'success'): ?>
+                                            <span class="badge bg-success status-badge"><i class="bi bi-check-circle-fill me-1"></i>SUCCESS</span>
+                                        <?php elseif ($statusMasuk === 'failed'): ?>
+                                            <span class="badge bg-danger status-badge"><i class="bi bi-exclamation-triangle-fill me-1"></i>FAILED (Luar Radius)</span>
+                                        <?php elseif ($statusMasuk === 'failed_time'): ?>
+                                            <span class="badge bg-warning text-dark status-badge"><i class="bi bi-clock me-1"></i>Luar Jam</span>
+                                        <?php else: ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Jarak: <strong class="text-dark"><?= $distMasuk !== null ? $distMasuk . " m" : "-" ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Validasi Pulang -->
+                            <div class="col-12 col-sm-6">
+                                <div class="p-2.5 rounded-3 bg-light border">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small fw-bold text-dark">📤 Pulang:</span>
+                                        <?php if ($statusPulang === 'success'): ?>
+                                            <span class="badge bg-success status-badge"><i class="bi bi-check-circle-fill me-1"></i>SUCCESS</span>
+                                        <?php elseif ($statusPulang === 'failed'): ?>
+                                            <span class="badge bg-danger status-badge"><i class="bi bi-exclamation-triangle-fill me-1"></i>FAILED (Luar Radius)</span>
+                                        <?php elseif ($statusPulang === 'failed_time'): ?>
+                                            <span class="badge bg-warning text-dark status-badge"><i class="bi bi-clock me-1"></i>Luar Jam</span>
+                                        <?php else: ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Jarak: <strong class="text-dark"><?= $distPulang !== null ? $distPulang . " m" : "-" ?></strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

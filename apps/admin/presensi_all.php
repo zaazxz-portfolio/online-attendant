@@ -22,6 +22,10 @@ $sql = "
     a.jam_pulang,
     a.absen_masuk,
     a.absen_pulang,
+    a.distance_masuk,
+    a.distance_pulang,
+    a.status_masuk,
+    a.status_pulang,
     a.distance,
     a.lat,
     a.lng,
@@ -246,7 +250,18 @@ function showDetail(data){
         badge = '<span class="badge bg-secondary">-</span>';
     }
 
-    let html = `
+        function sessionBadge(status, dist) {
+            if(!status) return '<span class="text-muted">-</span>';
+            let b = '';
+            if(status === 'success') b = '<span class="badge bg-success">SUCCESS</span>';
+            else if(status === 'failed') b = '<span class="badge bg-danger">FAILED (Luar Radius)</span>';
+            else if(status === 'failed_time') b = '<span class="badge bg-warning text-dark">Luar Jam</span>';
+            else b = `<span class="badge bg-secondary">${status}</span>`;
+            const d = (dist !== null && dist !== undefined && dist !== "") ? ` <small class="text-muted">(${Math.round(dist)} m)</small>` : '';
+            return b + d;
+        }
+
+        let html = `
         <div class="row g-3 text-center mb-3">
             <div class="col-6">
                 <span class="small fw-semibold text-muted d-block mb-1">Foto Masuk</span>
@@ -260,7 +275,7 @@ function showDetail(data){
         <div class="table-responsive">
             <table class="table table-sm table-borderless m-0">
                 <tr>
-                    <td class="text-secondary fw-semibold py-1" style="width: 120px;">Nama</td>
+                    <td class="text-secondary fw-semibold py-1" style="width: 140px;">Nama</td>
                     <td class="fw-bold py-1">${data.nama}</td>
                 </tr>
                 <tr>
@@ -272,24 +287,22 @@ function showDetail(data){
                     <td class="py-1">${data.tanggal ?? "-"}</td>
                 </tr>
                 <tr>
-                    <td class="text-secondary fw-semibold py-1">Jam Masuk</td>
-                    <td class="py-1">${data.absen_masuk ? `<span class="badge bg-success">${jamMasuk}</span>` : '<span class="text-muted">-</span>'}</td>
+                    <td class="text-secondary fw-semibold py-1">Absen Masuk</td>
+                    <td class="py-1">
+                        ${data.absen_masuk ? `<span class="badge bg-light text-dark border me-1">${jamMasuk}</span>` : '<span class="badge bg-secondary me-1">Belum</span>'}
+                        ${data.absen_masuk ? sessionBadge(data.status_masuk || data.status, data.distance_masuk || data.distance) : ''}
+                    </td>
                 </tr>
                 <tr>
-                    <td class="text-secondary fw-semibold py-1">Jam Pulang</td>
-                    <td class="py-1">${data.absen_pulang ? `<span class="badge bg-success">${jamPulang}</span>` : '<span class="text-muted">-</span>'}</td>
+                    <td class="text-secondary fw-semibold py-1">Absen Pulang</td>
+                    <td class="py-1">
+                        ${data.absen_pulang ? `<span class="badge bg-light text-dark border me-1">${jamPulang}</span>` : '<span class="badge bg-secondary me-1">Belum</span>'}
+                        ${data.absen_pulang ? sessionBadge(data.status_pulang, data.distance_pulang) : ''}
+                    </td>
                 </tr>
                 <tr>
-                    <td class="text-secondary fw-semibold py-1">Jarak Radius</td>
-                    <td class="py-1"><span class="fw-semibold">${data.distance ? Math.round(data.distance) : "-"}</span> meter</td>
-                </tr>
-                <tr>
-                    <td class="text-secondary fw-semibold py-1">Lokasi GPS</td>
+                    <td class="text-secondary fw-semibold py-1">Lokasi Terakhir</td>
                     <td class="py-1 small text-dark">${data.lat ?? "-"}, ${data.lng ?? "-"}</td>
-                </tr>
-                <tr>
-                    <td class="text-secondary fw-semibold py-1">Status</td>
-                    <td class="py-1">${badge}</td>
                 </tr>
             </table>
         </div>

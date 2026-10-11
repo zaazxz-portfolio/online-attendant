@@ -138,6 +138,10 @@ $radius = $setting['radius'];
                                 while ($row = mysqli_fetch_assoc($q)):
                                     $jamMasuk = !empty($row['jam_masuk']) ? substr($row['jam_masuk'], 0, 5) : '-';
                                     $jamPulang = !empty($row['jam_pulang']) ? substr($row['jam_pulang'], 0, 5) : '-';
+                                    $distMasuk = isset($row['distance_masuk']) ? round($row['distance_masuk'], 1) : (isset($row['distance']) ? round($row['distance'], 1) : '-');
+                                    $distPulang = isset($row['distance_pulang']) ? round($row['distance_pulang'], 1) : '-';
+                                    $statMasuk = $row['status_masuk'] ?? ($row['status'] ?? '-');
+                                    $statPulang = $row['status_pulang'] ?? '-';
                             ?>
                                     <tr class="row-data"
                                         data-tanggal="<?= tglIndoShort($row['tanggal']) ?>"
@@ -145,13 +149,20 @@ $radius = $setting['radius'];
                                         data-jampulang="<?= $jamPulang ?>"
                                         data-masuk="<?= htmlspecialchars(fotoUrl($row['absen_masuk'] ?? '')) ?>"
                                         data-pulang="<?= htmlspecialchars(fotoUrl($row['absen_pulang'] ?? '')) ?>"
-                                        data-distance="<?= isset($row['distance']) ? round($row['distance'], 1) : '-' ?>"
-                                        data-status="<?= htmlspecialchars($row['status'] ?? '-') ?>">
+                                        data-distancemasuk="<?= $distMasuk ?>"
+                                        data-distancepulang="<?= $distPulang ?>"
+                                        data-statusmasuk="<?= htmlspecialchars($statMasuk) ?>"
+                                        data-statuspulang="<?= htmlspecialchars($statPulang) ?>">
                                         <td><?= $no++ ?></td>
                                         <td class="fw-semibold text-dark"><?= tglIndoShort($row['tanggal']) ?></td>
                                         <td>
                                             <?php if (!empty($row['absen_masuk'])): ?>
                                                 <span class="badge bg-success"><i class="bi bi-clock me-1"></i><?= $jamMasuk ?> WIB</span>
+                                                <?php if ($statMasuk === 'success'): ?>
+                                                    <span class="badge bg-success-subtle text-success ms-1">Valid</span>
+                                                <?php elseif ($statMasuk === 'failed'): ?>
+                                                    <span class="badge bg-danger-subtle text-danger ms-1">Luar Radius</span>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
                                             <?php endif; ?>
@@ -159,6 +170,11 @@ $radius = $setting['radius'];
                                         <td>
                                             <?php if (!empty($row['absen_pulang'])): ?>
                                                 <span class="badge bg-success"><i class="bi bi-clock me-1"></i><?= $jamPulang ?> WIB</span>
+                                                <?php if ($statPulang === 'success'): ?>
+                                                    <span class="badge bg-success-subtle text-success ms-1">Valid</span>
+                                                <?php elseif ($statPulang === 'failed'): ?>
+                                                    <span class="badge bg-danger-subtle text-danger ms-1">Luar Radius</span>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Belum Absen</span>
                                             <?php endif; ?>
@@ -240,20 +256,12 @@ $radius = $setting['radius'];
                             <td class="fw-bold py-1" id="modal-tanggal"></td>
                         </tr>
                         <tr>
-                            <td class="text-secondary fw-semibold py-1">Jam Masuk</td>
-                            <td class="py-1" id="modal-jammasuk"></td>
+                            <td class="text-secondary fw-semibold py-1">Sesi Masuk</td>
+                            <td class="py-1" id="modal-sesi-masuk"></td>
                         </tr>
                         <tr>
-                            <td class="text-secondary fw-semibold py-1">Jam Pulang</td>
-                            <td class="py-1" id="modal-jampulang"></td>
-                        </tr>
-                        <tr>
-                            <td class="text-secondary fw-semibold py-1">Jarak Radius</td>
-                            <td class="py-1"><span class="fw-semibold" id="modal-distance"></span> meter</td>
-                        </tr>
-                        <tr>
-                            <td class="text-secondary fw-semibold py-1">Status Validasi</td>
-                            <td class="py-1" id="modal-status-badge"></td>
+                            <td class="text-secondary fw-semibold py-1">Sesi Pulang</td>
+                            <td class="py-1" id="modal-sesi-pulang"></td>
                         </tr>
                     </table>
                 </div>
@@ -271,30 +279,42 @@ $radius = $setting['radius'];
     const rows = document.querySelectorAll(".row-data");
     const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
 
+    function renderSessionBadge(jam, dist, status) {
+        if (!jam || jam === '-') return '<span class="badge bg-secondary">Belum Absen</span>';
+        
+        let statBadge = '';
+        if (status === 'success') {
+            statBadge = '<span class="badge bg-success ms-1"><i class="bi bi-check-circle-fill me-1"></i>SUCCESS</span>';
+        } else if (status === 'failed') {
+            statBadge = '<span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>FAILED (Luar Radius)</span>';
+        } else if (status === 'failed_time') {
+            statBadge = '<span class="badge bg-warning text-dark ms-1"><i class="bi bi-clock me-1"></i>Luar Jam</span>';
+        } else {
+            statBadge = '<span class="badge bg-secondary ms-1">-</span>';
+        }
+
+        const distText = (dist && dist !== '-') ? `<span class="small text-muted d-block mt-0.5">Jarak: <strong>${dist} m</strong></span>` : '';
+        return `<div><span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>${jam} WIB</span> ${statBadge} ${distText}</div>`;
+    }
+
     rows.forEach(row => {
         row.addEventListener("click", () => {
             document.getElementById("modal-tanggal").innerText = row.dataset.tanggal;
             
-            const jamMasuk = row.dataset.jammasuk;
-            document.getElementById("modal-jammasuk").innerHTML = jamMasuk !== '-' ? `<span class="badge bg-success">${jamMasuk} WIB</span>` : '<span class="badge bg-secondary">Belum Absen</span>';
+            document.getElementById("modal-sesi-masuk").innerHTML = renderSessionBadge(
+                row.dataset.jammasuk,
+                row.dataset.distancemasuk,
+                row.dataset.statusmasuk
+            );
             
-            const jamPulang = row.dataset.jampulang;
-            document.getElementById("modal-jampulang").innerHTML = jamPulang !== '-' ? `<span class="badge bg-success">${jamPulang} WIB</span>` : '<span class="badge bg-secondary">Belum Absen</span>';
+            document.getElementById("modal-sesi-pulang").innerHTML = renderSessionBadge(
+                row.dataset.jampulang,
+                row.dataset.distancepulang,
+                row.dataset.statuspulang
+            );
 
             document.getElementById("modal-masuk").src = row.dataset.masuk || "/public/uploads/default.png";
             document.getElementById("modal-pulang").src = row.dataset.pulang || "/public/uploads/default.png";
-            document.getElementById("modal-distance").innerText = row.dataset.distance;
-
-            const status = row.dataset.status;
-            const statusBadge = document.getElementById("modal-status-badge");
-            
-            if(status === 'success'){
-                statusBadge.innerHTML = '<span class="badge bg-success">SUCCESS</span>';
-            } else if(status === 'failed'){
-                statusBadge.innerHTML = '<span class="badge bg-danger">FAILED (Luar Radius)</span>';
-            } else {
-                statusBadge.innerHTML = '<span class="badge bg-warning text-dark">Luar Jam Presensi</span>';
-            }
 
             detailModal.show();
         });
