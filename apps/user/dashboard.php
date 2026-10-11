@@ -7,6 +7,7 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'mahasiswa') {
 
 require __DIR__ . "/../../utils/db.php";
 require __DIR__ . "/../../utils/helpers.php";
+require __DIR__ . "/../../utils/drive.php";
 
 $u = $_SESSION['user'];
 $uid = $u['id'];

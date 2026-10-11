@@ -166,36 +166,61 @@ navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
 })
 .catch(err => { alert("Gagal akses kamera: " + err.message); });
 
-// fetch geolocation in background (doesn't block capture)
-function fetchLocation(){
+// Fetch geolocation secara presisi menggunakan watchPosition (terus memperbarui sampai akurasi terbaik)
+let watchId = null;
+let bestAccuracy = Infinity;
+
+function startWatchingLocation(){
     if(!navigator.geolocation){
         geoStatus.className = "alert alert-warning py-2 border-0 small mb-4";
         geoStatus.innerHTML = "<i class='bi bi-exclamation-triangle me-1'></i> Browser tidak mendukung GPS. Foto tetap bisa diambil.";
         return;
     }
     geoStatus.className = "alert alert-secondary py-2 border-0 small mb-4";
-    geoStatus.innerHTML = "<span class='spinner-border spinner-border-sm text-warning me-2' role='status' aria-hidden='true'></span> Mengambil lokasi GPS...";
+    geoStatus.innerHTML = "<span class='spinner-border spinner-border-sm text-warning me-2' role='status' aria-hidden='true'></span> Mengunci sinyal GPS presisi tinggi...";
 
-    navigator.geolocation.getCurrentPosition(
+    const geoOptions = {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0 // Wajib 0 agar tidak mengambil koordinat basi/cache ISP
+    };
+
+    watchId = navigator.geolocation.watchPosition(
         pos => {
-            document.getElementById("lat").value = pos.coords.latitude;
-            document.getElementById("lng").value = pos.coords.longitude;
-            hasLocation = true;
-            geoStatus.className = "alert alert-success py-2 border-0 small mb-4 text-success";
-            geoStatus.innerHTML = "<i class='bi bi-check-circle-fill me-1'></i> Lokasi GPS berhasil didapatkan";
+            const acc = Math.round(pos.coords.accuracy);
+            
+            // Simpan koordinat jika lebih akurat atau pembaruan pertama
+            if (acc <= bestAccuracy || !hasLocation) {
+                bestAccuracy = acc;
+                document.getElementById("lat").value = pos.coords.latitude;
+                document.getElementById("lng").value = pos.coords.longitude;
+                hasLocation = true;
+            }
+
+            // Tampilkan indikator akurasi ke pengguna
+            if (acc <= 20) {
+                geoStatus.className = "alert alert-success py-2 border-0 small mb-4 text-success";
+                geoStatus.innerHTML = `<i class='bi bi-check-circle-fill me-1'></i> GPS Sangat Akurat (Akurasi: ±${acc} meter)`;
+            } else if (acc <= 100) {
+                geoStatus.className = "alert alert-info py-2 border-0 small mb-4 text-primary";
+                geoStatus.innerHTML = `<i class='bi bi-geo-alt-fill me-1'></i> Lokasi GPS Terkunci (Akurasi: ±${acc} meter)`;
+            } else {
+                geoStatus.className = "alert alert-warning py-2 border-0 small mb-4";
+                geoStatus.innerHTML = `<i class='bi bi-exclamation-circle me-1'></i> Sinyal GPS Lemah (Akurasi: ±${acc} meter, sedang mencari sinyal satelit yang lebih kuat...)`;
+            }
         },
         err => {
             geoStatus.className = "alert alert-warning py-2 border-0 small mb-4";
-            geoStatus.innerHTML = "<i class='bi bi-exclamation-triangle me-1'></i> GPS tidak tersedia, foto tetap bisa diambil — <a href='#' id='retryGeo' class='alert-link text-decoration-underline'>coba lagi</a>";
+            geoStatus.innerHTML = `<i class='bi bi-exclamation-triangle me-1'></i> Gagal membaca GPS (${err.message}) — <a href='#' id='retryGeo' class='alert-link text-decoration-underline'>coba lagi</a>`;
             document.getElementById("retryGeo").onclick = function(e){
                 e.preventDefault();
-                fetchLocation();
+                startWatchingLocation();
             };
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+        geoOptions
     );
 }
-fetchLocation();
+startWatchingLocation();
 
 document.getElementById("capture").onclick = function(){
     if(isSubmitting) return;

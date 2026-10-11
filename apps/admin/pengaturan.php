@@ -58,13 +58,16 @@ $jamPulang = $setting['jam_pulang'] ?? '12:00';
     <title>Pengaturan - ePresence Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .navbar-custom { background-color: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .navbar-brand-custom { font-weight: 700; color: #212529; }
         .navbar-brand-custom span { color: #FECA0A; }
         .admin-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); background: #ffffff; }
-        .map-container { width: 100%; height: 300px; border-radius: 12px; overflow: hidden; border: 2px solid #dee2e6; background: #e9ecef; }
+        .map-container { width: 100%; height: 350px; border-radius: 12px; overflow: hidden; border: 2px solid #dee2e6; z-index: 1; }
+        .map-hint { font-size: 0.8rem; background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -102,19 +105,19 @@ $jamPulang = $setting['jam_pulang'] ?? '12:00';
                     <div class="alert alert-danger border-0 py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?></div>
                 <?php endif; ?>
 
-                <!-- Map Preview -->
+                <!-- Map Interaktif -->
                 <div class="mb-4">
-                    <label class="form-label fw-semibold text-secondary small">Pratinjau Lokasi</label>
-                    <div class="map-container" id="mapContainer">
-                        <iframe
-                            id="mapFrame"
-                            width="100%" height="100%"
-                            style="border:0;"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            src="https://maps.google.com/maps?q=<?= $baseLat ?>,<?= $baseLng ?>&z=17&output=embed">
-                        </iframe>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-semibold text-secondary small mb-0">Pilih Titik Lokasi Base (Klik pada Peta)</label>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" id="btnMyLoc" style="font-size: 0.75rem;">
+                            <i class="bi bi-crosshair me-1"></i>Gunakan Lokasi Saya Saat Ini
+                        </button>
                     </div>
+                    <div class="map-hint">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        <strong>Tips:</strong> Klik di mana saja pada peta atau seret (drag) pin marker kuning untuk menentukan titik koordinat Base. Lingkaran kuning menunjukkan jangkauan radius.
+                    </div>
+                    <div class="map-container" id="map"></div>
                 </div>
 
                 <form method="POST">
@@ -179,22 +182,121 @@ $jamPulang = $setting['jam_pulang'] ?? '12:00';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-// Update map preview when lat/lng changes
-const latInput = document.getElementById('base_lat');
-const lngInput = document.getElementById('base_lng');
-const mapFrame = document.getElementById('mapFrame');
+const latInput    = document.getElementById('base_lat');
+const lngInput    = document.getElementById('base_lng');
+const radiusInput = document.getElementById('radius');
+const btnMyLoc    = document.getElementById('btnMyLoc');
 
-function updateMap(){
-    const lat = latInput.value;
-    const lng = lngInput.value;
-    if(lat && lng){
-        mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+// Inisialisasi koordinat awal
+let currentLat = parseFloat(latInput.value) || -6.8936;
+let currentLng = parseFloat(lngInput.value) || 107.6104;
+let currentRadius = parseInt(radiusInput.value) || 100;
+
+// Setup Leaflet Map
+const map = L.map('map').setView([currentLat, currentLng], 17);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Marker Draggable
+let marker = L.marker([currentLat, currentLng], {
+    draggable: true
+}).addTo(map);
+
+// Radius Circle
+let radiusCircle = L.circle([currentLat, currentLng], {
+    color: '#FECA0A',
+    fillColor: '#FECA0A',
+    fillOpacity: 0.25,
+    radius: currentRadius
+}).addTo(map);
+
+function updateLocation(lat, lng, pan = false){
+    lat = parseFloat(lat).toFixed(7);
+    lng = parseFloat(lng).toFixed(7);
+
+    latInput.value = lat;
+    lngInput.value = lng;
+
+    const newLatLng = [lat, lng];
+    marker.setLatLng(newLatLng);
+    radiusCircle.setLatLng(newLatLng);
+
+    if(pan){
+        map.panTo(newLatLng);
     }
 }
 
-latInput.addEventListener('change', updateMap);
-lngInput.addEventListener('change', updateMap);
+// 1. Klik pada peta untuk pindahkan lokasi
+map.on('click', function(e) {
+    updateLocation(e.latlng.lat, e.latlng.lng);
+});
+
+// 2. Drag & drop marker
+marker.on('dragend', function(e) {
+    const pos = marker.getLatLng();
+    updateLocation(pos.lat, pos.lng);
+});
+
+// 3. Input manual lat & lng berubah
+latInput.addEventListener('input', () => {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+    if(!isNaN(lat) && !isNaN(lng)){
+        updateLocation(lat, lng, true);
+    }
+});
+lngInput.addEventListener('input', () => {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+    if(!isNaN(lat) && !isNaN(lng)){
+        updateLocation(lat, lng, true);
+    }
+});
+
+// 4. Input radius berubah -> update lingkaran visual
+radiusInput.addEventListener('input', () => {
+    const r = parseInt(radiusInput.value) || 100;
+    radiusCircle.setRadius(r);
+});
+
+// 5. Tombol Deteksi Lokasi Saya Saat Ini (GPS Browser)
+btnMyLoc.addEventListener('click', () => {
+    if(navigator.geolocation){
+        btnMyLoc.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mencari...';
+        btnMyLoc.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const userLat = pos.coords.latitude;
+                const userLng = pos.coords.longitude;
+                updateLocation(userLat, userLng, true);
+                map.setView([userLat, userLng], 17);
+                btnMyLoc.innerHTML = '<i class="bi bi-check-circle me-1 text-success"></i>Lokasi Ditemukan';
+                setTimeout(() => {
+                    btnMyLoc.innerHTML = '<i class="bi bi-crosshair me-1"></i>Gunakan Lokasi Saya Saat Ini';
+                    btnMyLoc.disabled = false;
+                }, 2000);
+            },
+            (err) => {
+                alert("Gagal mendeteksi lokasi GPS: " + err.message);
+                btnMyLoc.innerHTML = '<i class="bi bi-crosshair me-1"></i>Gunakan Lokasi Saya Saat Ini';
+                btnMyLoc.disabled = false;
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    } else {
+        alert("Browser Anda tidak mendukung fitur Geolocation.");
+    }
+});
+
+// Trigger invalidateSize setelah render untuk memastikan map tile termuat sempurna
+setTimeout(() => { map.invalidateSize(); }, 300);
 </script>
 </body>
 </html>

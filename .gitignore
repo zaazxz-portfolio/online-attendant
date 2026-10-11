@@ -1,9 +1,14 @@
 docker/
 vendor/
 .DS_Store
-Dockerfile
 compose.yaml
 .htaccess
 .ftpquota
 error_log
 *.db
+public/uploads/*.jpg
+public/uploads/*.jpeg
+public/uploads/*.png
+public/uploads/*.webp
+
+
